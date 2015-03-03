@@ -15,6 +15,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use util::geometry::{Au, ZERO_RECT};
+use util::memory::SizeOf;
 use std::cmp::max;
 use std::fmt;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -106,6 +107,15 @@ impl Flow for TableColGroupFlow {
                                              _: &Point2D<Au>) {}
 
     fn mutate_fragments(&mut self, _: &mut FnMut(&mut Fragment)) {}
+}
+
+impl SizeOf for TableColGroupFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self() +
+            self.fragment.size_of_excluding_self() +
+            self.cols.size_of_excluding_self() +
+            self.inline_sizes.size_of_excluding_self()
+    }
 }
 
 impl fmt::Debug for TableColGroupFlow {

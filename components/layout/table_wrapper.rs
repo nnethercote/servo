@@ -25,6 +25,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use util::geometry::Au;
+use util::memory::SizeOf;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -394,6 +395,12 @@ impl Flow for TableWrapperFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+}
+
+impl SizeOf for TableWrapperFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self()
     }
 }
 

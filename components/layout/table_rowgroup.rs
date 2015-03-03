@@ -19,6 +19,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect};
 use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
+use util::memory::SizeOf;
 use std::fmt;
 use style::properties::ComputedValues;
 use std::sync::Arc;
@@ -164,6 +165,12 @@ impl Flow for TableRowGroupFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+}
+
+impl SizeOf for TableRowGroupFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self()
     }
 }
 

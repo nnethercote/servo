@@ -20,6 +20,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect};
 use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
+use util::memory::SizeOf;
 use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;
@@ -332,6 +333,12 @@ impl Flow for TableRowFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+}
+
+impl SizeOf for TableRowFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self()
     }
 }
 

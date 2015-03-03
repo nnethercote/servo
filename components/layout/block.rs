@@ -60,6 +60,7 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use util::geometry::{Au, MAX_AU};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use util::memory::SizeOf;
 use util::opts;
 
 /// Information specific to floated blocks.
@@ -1937,6 +1938,16 @@ impl Flow for BlockFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         (*mutator)(&mut self.fragment)
+    }
+}
+
+impl SizeOf for BlockFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.base.size_of_excluding_self() +
+            self.fragment.size_of_excluding_self()
+
+        // XXX: the following fields may be measured in the future:
+        // - float
     }
 }
 

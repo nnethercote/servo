@@ -969,6 +969,9 @@ impl LayoutTask {
             layout_root.dump();
         }
 
+        // njn: remove this
+        println!("total-size = {}", layout_root.size_of_excluding_self());
+
         rw_data.generation += 1;
 
         // Tell script that we're done.

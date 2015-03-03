@@ -21,6 +21,7 @@ use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use util::geometry::Au;
 use util::logical_geometry::LogicalRect;
+use util::memory::SizeOf;
 use util::opts;
 use style::properties::ComputedValues;
 use style::computed_values::list_style_type;
@@ -181,6 +182,13 @@ impl Flow for ListItemFlow {
     }
 }
 
+impl SizeOf for ListItemFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self() +
+            self.marker.size_of_excluding_self()
+    }
+}
+
 /// The kind of content that `list-style-type` results in.
 pub enum ListStyleTypeContent {
     None,
@@ -204,4 +212,3 @@ impl ListStyleTypeContent {
         }
     }
 }
-

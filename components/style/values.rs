@@ -876,6 +876,7 @@ pub mod computed {
     use std::ops::{Add, Mul};
     use url::Url;
     use util::geometry::Au;
+    use util::memory::SizeOf;
 
     #[allow(missing_copy_implementations)]  // It’s kinda big
     pub struct Context {
@@ -990,6 +991,12 @@ pub mod computed {
                 &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
             }
+        }
+    }
+
+    impl SizeOf for LengthOrPercentageOrAuto {
+        fn size_of_excluding_self(&self) -> usize {
+            0
         }
     }
 

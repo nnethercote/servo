@@ -30,6 +30,7 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalRect, WritingMode};
+use util::memory::SizeOf;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
@@ -400,6 +401,12 @@ impl Flow for TableFlow {
 
     fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
+    }
+}
+
+impl SizeOf for TableFlow {
+    fn size_of_excluding_self(&self) -> usize {
+        self.block_flow.size_of_excluding_self()
     }
 }
 
