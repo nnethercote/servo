@@ -29,6 +29,7 @@ use msg::compositor_msg::ScriptListener;
 use net::image_cache_task::ImageCacheTask;
 use net::resource_task::ResourceTask;
 use net::storage_task::StorageTask;
+use util::memory::MemoryProfilerChan;
 use util::smallvec::SmallVec1;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
@@ -112,6 +113,7 @@ pub trait ScriptTaskFactory {
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
+                 memory_profiler_chan: MemoryProfilerChan,
                  window_size: Option<WindowSizeData>,
                  load_data: LoadData)
                  where C: ScriptListener + Send;

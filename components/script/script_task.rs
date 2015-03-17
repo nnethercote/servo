@@ -66,6 +66,7 @@ use net::resource_task::LoadData as NetLoadData;
 use net::storage_task::StorageTask;
 use string_cache::Atom;
 use util::geometry::to_frac_px;
+use util::memory::MemoryProfilerChan;
 use util::smallvec::SmallVec;
 use util::str::DOMString;
 use util::task::{spawn_named, spawn_named_with_send_on_failure};
@@ -273,6 +274,9 @@ pub struct ScriptTask {
     devtools_port: DevtoolsControlPort,
     devtools_sender: Sender<DevtoolScriptControlMsg>,
 
+    /// The channel on which messages can be sent to the memory profiler.
+    memory_profiler_chan: MemoryProfilerChan,
+
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
     /// The JSContext.
@@ -342,6 +346,7 @@ impl ScriptTaskFactory for ScriptTask {
                  storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
+                 memory_profiler_chan: MemoryProfilerChan,
                  window_size: Option<WindowSizeData>,
                  load_data: LoadData)
                  where C: ScriptListener + Send + 'static {
@@ -358,7 +363,8 @@ impl ScriptTaskFactory for ScriptTask {
                                               resource_task,
                                               storage_task,
                                               image_cache_task,
-                                              devtools_chan);
+                                              devtools_chan,
+                                              memory_profiler_chan);
 
             SCRIPT_TASK_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_task as *const _);
@@ -396,7 +402,8 @@ impl ScriptTask {
                resource_task: ResourceTask,
                storage_task: StorageTask,
                img_cache_task: ImageCacheTask,
-               devtools_chan: Option<DevtoolsControlChan>)
+               devtools_chan: Option<DevtoolsControlChan>,
+               memory_profiler_chan: MemoryProfilerChan)
                -> ScriptTask {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         let wrap_for_same_compartment = wrap_for_same_compartment as
@@ -438,6 +445,8 @@ impl ScriptTask {
             devtools_chan: devtools_chan,
             devtools_port: devtools_receiver,
             devtools_sender: devtools_sender,
+
+            memory_profiler_chan: memory_profiler_chan,
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),

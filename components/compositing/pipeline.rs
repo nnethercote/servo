@@ -94,6 +94,7 @@ impl Pipeline {
                                           storage_task.clone(),
                                           image_cache_task.clone(),
                                           devtools_chan,
+                                          memory_profiler_chan.clone(),
                                           window_size,
                                           load_data.clone());
                 ScriptControlChan(script_chan)
