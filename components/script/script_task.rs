@@ -66,7 +66,7 @@ use net::resource_task::LoadData as NetLoadData;
 use net::storage_task::StorageTask;
 use string_cache::Atom;
 use util::geometry::to_frac_px;
-use util::memory::MemoryProfilerChan;
+use util::memory::{MemoryProfilerChan, MemoryProfilerMsg, MemoryReporter, MemoryReportsChan};
 use util::smallvec::SmallVec;
 use util::str::DOMString;
 use util::task::{spawn_named, spawn_named_with_send_on_failure};
@@ -181,6 +181,9 @@ pub enum ScriptMsg {
     RefcountCleanup(TrustedReference),
     /// The final network response for a page has arrived.
     PageFetchComplete(PipelineId, Option<SubpageId>, LoadResponse),
+    /// Requests that the script task measure its memory usage. The resulting
+    /// reports are sent back via the supplied channel.
+    CollectMemoryReports(MemoryReportsChan),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -212,6 +215,17 @@ impl NonWorkerScriptChan {
     pub fn new() -> (Receiver<ScriptMsg>, Box<NonWorkerScriptChan>) {
         let (chan, port) = channel();
         (port, box NonWorkerScriptChan(chan))
+    }
+}
+
+impl MemoryReporter for NonWorkerScriptChan {
+    // Just injects an appropriate event into the script task's queue.
+    fn collect_reports(&self, reports_chan: MemoryReportsChan) -> bool {
+        println!("MemoryReportsChan for NonWorkerScriptChan collect_reports");
+        let NonWorkerScriptChan(ref c) = *self;
+        let ret = c.send(ScriptMsg::CollectMemoryReports(reports_chan)).is_ok();
+        println!("MemoryReportsChan for NonWorkerScriptChan collect_reports-post");
+        ret
     }
 }
 
@@ -276,6 +290,9 @@ pub struct ScriptTask {
 
     /// The channel on which messages can be sent to the memory profiler.
     memory_profiler_chan: MemoryProfilerChan,
+
+    /// The name used for the task's memory reporter.
+    pub memory_reporter_name: String,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -427,6 +444,14 @@ impl ScriptTask {
                                       Some(pre_wrap));
         }
 
+        // Register this thread as a memory reporter, via its own channel.
+        // njn: need to unregister as well
+        let reporter = Box::new(NonWorkerScriptChan(chan.0.clone()));
+        let reporter_name = format!("script-reporter"); // njn: need to uniquify?
+            // njn: use load_data.url, pass in from create()
+        memory_profiler_chan.send(MemoryProfilerMsg::RegisterMemoryReporter(reporter_name.clone(),
+                                                                            reporter));
+
         let (devtools_sender, devtools_receiver) = channel();
         ScriptTask {
             page: DOMRefCell::new(None),
@@ -447,6 +472,7 @@ impl ScriptTask {
             devtools_sender: devtools_sender,
 
             memory_profiler_chan: memory_profiler_chan,
+            memory_reporter_name: reporter_name,
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
@@ -513,6 +539,7 @@ impl ScriptTask {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
+        println!("handle_msgs start");
         let roots = RootCollection::new();
         let _stack_roots_tls = StackRootTLS::new(&roots);
 
@@ -552,6 +579,7 @@ impl ScriptTask {
 
         // Receive at least one message so we don't spinloop.
         let mut event = {
+            println!("getting event");
             let sel = Select::new();
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.control_port);
@@ -577,6 +605,7 @@ impl ScriptTask {
 
         // Squash any pending resize and reflow events in the queue.
         loop {
+            println!("loop");
             match event {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
@@ -612,6 +641,7 @@ impl ScriptTask {
 
         // Process the gathered events.
         for msg in sequential.into_iter() {
+            println!("sequential iter");
             match msg {
                 MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
                     if self.handle_exit_pipeline_msg(id, exit_type) {
@@ -624,6 +654,7 @@ impl ScriptTask {
             }
         }
 
+        println!("end");
         true
     }
 
@@ -674,6 +705,9 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
             ScriptMsg::PageFetchComplete(id, subpage, response) =>
                 self.handle_page_fetch_complete(id, subpage, response),
+            ScriptMsg::CollectMemoryReports(reports_chan) =>
+                //self.handle_page_fetch_complete(id, subpage, response),
+                println!("ScriptTask: CollectMemoryReports"),
         }
     }
 
